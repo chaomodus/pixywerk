@@ -1,0 +1,5 @@
+{ 
+    "name":"test",
+    "root":"/home/cas/pixywerk/test",
+    "template_paths":["template"]
+}

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+<title>Debug for {{path}}</title>
+<style type="text/css">
+table { border: 1px solid black; }
+div { border: 1px solid black; }
+td { border: 1px solid black; }
+</style>
+</head>
+<body>
+<p>{{path}}</p>
+<h1>Content</h1>
+<div class="content">
+{{content}}
+</div>
+
+<h1>Environment</h1>
+<table class="environment">
+<tr><th>key</th><th>value</th></tr>
+{% for k in environ.keys() %}
+<tr><td>{{k}}</td><td>{{environ[k]}}</td></tr>
+{% endfor %}
+</table>
+
+<h1>Metadata</h1>
+<table class="metadata">
+<tr><th>key</th><th>value</th></tr>
+{% for k in metadata.keys() %}
+<tr><td>{{k}}</td><td>{{metadata[k]}}</td></tr>
+{% endfor %}
+</table>
+</body>

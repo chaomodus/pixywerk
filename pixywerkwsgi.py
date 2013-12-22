@@ -2,12 +2,14 @@ import os
 import pixywerk
 import simpleconfig
 from utils import response
+import re
 
 default_config = {
     'root':os.getcwd(),
     'name':'pixywerk',
     'template_paths':('templates',),
     'pathelement_blacklist':('.git',),
+    'wsgi_path_filters':(),
 }
 config = default_config
 
@@ -22,6 +24,10 @@ print "Config:"
 for k,v in config.items():
     print k,'=',v
 print "--- ready ---"
+
+filters = ()
+for f in config['wsgi_path_filters']:
+    filters.append(re.compile(f))
 
 mywerk = pixywerk.PixyWerk(config)
 
@@ -38,7 +44,9 @@ def debug(env):
 
 def pixywerk(environ, start_response):
     uri = environ['PATH_INFO']
-
+    for f in filters:
+        uri = f.sub('',uri)
+    
     if uri[-1] == '/':
         uri = uri[:-1]
         

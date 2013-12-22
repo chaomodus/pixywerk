@@ -6,7 +6,6 @@ def load_config(infile, defaults={}):
         cfg = yaml.safe_load(infile)
         for k,v in cfg.items():
             conf[k] = v
-    except: pass
-
+    except: print "[SC] Error loading ",infile.name
     return conf
 

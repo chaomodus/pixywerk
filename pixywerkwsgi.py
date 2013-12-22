@@ -25,7 +25,7 @@ for k,v in config.items():
     print k,'=',v
 print "--- ready ---"
 
-filters = ()
+filters = []
 for f in config['wsgi_path_filters']:
     filters.append(re.compile(f))
 

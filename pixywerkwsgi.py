@@ -47,9 +47,12 @@ def pixywerk(environ, start_response):
     for f in filters:
         uri = f.sub('',uri)
     
-    if uri[-1] == '/':
+    if uri and uri[-1] == '/':
         uri = uri[:-1]
-        
+    
+    if not len(uri):
+        uri = '/'
+
     resp = '404 Not Found'
     headr = dict()
     content = '404 NOT FOUND'

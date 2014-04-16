@@ -13,3 +13,7 @@ TODO List
 * Proper logging would be good.
 
 * Authentication for trees.
+
+* Allowing content in bbcode, markdown and restructuredtext would be nice.
+
+* Allowing trees to be stored in a database would be nice.

@@ -30,13 +30,14 @@ class PixyWerk(object):
             content = file(contentfn, 'r').read()
         rendered = template.render(content=content, environ=environ, path=path, metadata=metadata)
 
+        # this should probably be shared between all of the handlers.
         headers = dict()
         for i in metadata.keys():
             if len(i) == 2 and i[0] == 'header':
                 headers[i[1]] = metadata[i]
         resp = response()
         resp.headers = headers
-    
+
         return response().done(rendered)
 
     def handle(self, path, environ):
@@ -58,7 +59,7 @@ class PixyWerk(object):
             if os.access(pth + '.props', os.F_OK):
                 propfile = file(pth+'.props', 'r')
                 contfn = pth+'.cont'
-        
+
         if propfile:
             props = simpleconfig.load_config(propfile,DEFAULT_PROPS)
             # look up handler
@@ -68,7 +69,7 @@ class PixyWerk(object):
             else:
                 # fixme, error code page config options
                 return response(code=503, message='Page error.', contenttype='text/plain').done('503 page error.')
-            
+
         elif os.access(pth, os.F_OK):
             # does the literal file exist?
             mtypes = mimetypes.guess_type(pth)
@@ -77,7 +78,7 @@ class PixyWerk(object):
                 ctype = mtypes[0]
             else:
                 ctype='application/octet-stream'
-    
+
             r = response(contenttype=ctype)
             if mtypes[1]:
                 r.headers['Content-encoding'] = mtypes[1]

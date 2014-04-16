@@ -46,10 +46,10 @@ def pixywerk(environ, start_response):
     uri = environ['PATH_INFO']
     for f in filters:
         uri = f.sub('',uri)
-    
+
     if uri and uri[-1] == '/':
         uri = uri[:-1]
-    
+
     if not len(uri):
         uri = '/'
 
@@ -65,4 +65,3 @@ def pixywerk(environ, start_response):
 
     start_response(resp, headr)
     return content
-

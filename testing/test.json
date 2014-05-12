@@ -1,5 +1,5 @@
-{ 
+{
     "name":"test",
-    "root":"/home/cas/pixywerk/test",
+    "root":"/home/cas/pixywerk/testing/test",
     "template_paths":["template"]
 }

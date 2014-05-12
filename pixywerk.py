@@ -27,7 +27,18 @@ class PixyWerk(object):
         template = self.template_env.get_template(metadata['template'])
         content = ''
         if os.access(contentfn, os.F_OK):
+            # default - html fragment
             content = file(contentfn, 'r').read()
+        else:
+            if os.access(contentfn+'.md', os.F_OK):
+                # support markdown
+                pass
+            else if os.access(contentfn+'.rst', os.F_OK):
+                # support restructuredtext
+                pass
+            else if os.access(contentfn+'.bb', os.F_OK):
+                # support bbcode
+                pass
         rendered = template.render(content=content, environ=environ, path=path, metadata=metadata)
 
         # this should probably be shared between all of the handlers.

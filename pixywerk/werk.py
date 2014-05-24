@@ -1,11 +1,11 @@
-from utils import response, sanitize_path
+from .utils import response, sanitize_path
 import mimetypes
 mimetypes.init()
 import os
 import re
 from jinja2 import Environment, FileSystemLoader
 
-import simpleconfig
+from . import simpleconfig
 
 DEFAULT_PROPS={('header','Content-type'):'text/html',
                'handler':'template',

@@ -17,3 +17,5 @@ TODO List
 * Allowing content in bbcode, markdown and restructuredtext would be nice.
 
 * Allowing trees to be stored in a database would be nice.
+
+* Support HUP with state reset.

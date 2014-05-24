@@ -1,7 +1,7 @@
 import os
-import pixywerk
-import simpleconfig
-from utils import response
+from . import werk
+from . import simpleconfig
+from .utils import response
 import re
 
 default_config = {
@@ -11,25 +11,35 @@ default_config = {
     'pathelement_blacklist':('.git',),
     'wsgi_path_filters':(),
 }
-config = default_config
 
-print "PIXYWERK"
+mywerk = None
+config = None
+filters = None
 
-if os.environ.has_key('PIXYWERK_CONFIG'):
-    infile = file(os.environ['PIXYWERK_CONFIG'],'r')
-    config = simpleconfig.load_config(infile, config)
-    print "loaded config ",os.environ['PIXYWERK_CONFIG']
+def init():
+    global config
+    global mywerk
+    global filters
+    config = default_config
 
-print "Config:"
-for k,v in config.items():
-    print k,'=',v
-print "--- ready ---"
+    print "PIXYWERK"
 
-filters = []
-for f in config['wsgi_path_filters']:
-    filters.append(re.compile(f))
+    if os.environ.has_key('PIXYWERK_CONFIG'):
+        infile = file(os.environ['PIXYWERK_CONFIG'],'r')
+        config = simpleconfig.load_config(infile, config)
+        print "loaded config ",os.environ['PIXYWERK_CONFIG']
 
-mywerk = pixywerk.PixyWerk(config)
+    print "Config:"
+    for k,v in config.items():
+        print k,'=',v
+    print "--- ready ---"
+
+    filters = []
+    for f in config['wsgi_path_filters']:
+        filters.append(re.compile(f))
+
+    mywerk = werk.PixyWerk(config)
+
 
 def print_debug(dictionary):
     outp = '<table>'
@@ -42,7 +52,12 @@ def debug(env):
     resp = response()
     return resp.done(cont)
 
-def pixywerk(environ, start_response):
+def do_werk(environ, start_response):
+    global config
+    global mywerk
+
+    if config is None:
+        init()
     uri = environ['PATH_INFO']
     for f in filters:
         uri = f.sub('',uri)

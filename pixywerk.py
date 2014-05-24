@@ -33,10 +33,10 @@ class PixyWerk(object):
             if os.access(contentfn+'.md', os.F_OK):
                 # support markdown
                 pass
-            else if os.access(contentfn+'.rst', os.F_OK):
+            elif os.access(contentfn+'.rst', os.F_OK):
                 # support restructuredtext
                 pass
-            else if os.access(contentfn+'.bb', os.F_OK):
+            elif os.access(contentfn+'.bb', os.F_OK):
                 # support bbcode
                 pass
         rendered = template.render(content=content, environ=environ, path=path, metadata=metadata)

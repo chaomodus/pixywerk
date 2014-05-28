@@ -35,34 +35,6 @@ class PixyWerk(object):
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
 
-    def handle_template(self, path, environ, metadata, contentfn):
-        template = self.template_env.get_template(metadata['template'])
-        content = ''
-        if os.access(contentfn, os.F_OK):
-            # default - html fragment
-            content = file(contentfn, 'r').read()
-        else:
-            if os.access(contentfn+'.md', os.F_OK):
-                # support markdown
-                pass
-            elif os.access(contentfn+'.rst', os.F_OK):
-                # support restructuredtext
-                pass
-            elif os.access(contentfn+'.bb', os.F_OK):
-                # support bbcode
-                pass
-        rendered = template.render(content=content, environ=environ, path=path, metadata=metadata)
-
-        # this should probably be shared between all of the handlers.
-        headers = dict()
-        for i in metadata.keys():
-            if len(i) == 2 and i[0] == 'header':
-                headers[i[1]] = metadata[i]
-        resp = response()
-        resp.headers = headers
-
-        return response().done(rendered)
-
     def get_metadata(self, relpath):
         # FIXME this would be trivial to cache
         meta = dict(DEFAULT_PROPS)
@@ -100,7 +72,7 @@ class PixyWerk(object):
         else:
             return cont
 
-    def handle(self, path, environ):
+    def do_handle(self, path, environ):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
@@ -109,9 +81,15 @@ class PixyWerk(object):
         templatable = False
         mimetype = ''
         enctype = ''
+        code = 200
         # Locate content file
         if os.path.isdir(pth):
-            # directory - render an index
+            # search for index file
+            for idxf in ('index','index.html','index.md','index.pp'):
+                c, cont, mt, mimet, enct = self.do_handle(path+'/'+idxf, environ)
+                if c != 404:
+                    return c, cont, mt, mimet, enct
+            # directory with no index - render an index
             content = self.generate_index(pth)
             templatable = True
         elif os.access(pth+'.cont',os.F_OK):
@@ -145,7 +123,7 @@ class PixyWerk(object):
 
         else:
             # 404
-            return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')
+            return 404, None, None, None, None
 
         # Load metadata tree
         metadata = self.get_metadata(relpth)
@@ -156,6 +134,12 @@ class PixyWerk(object):
             content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)
             mimetype = 'text/html'
 
+        return code, content, metadata, mimetype, enctype
+
+    def handle(self, path, environ):
+        code, content, metadata, mimetype, enctype = self.do_handle(path, environ)
+        if code == 404:
+            return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')
         resp = response()
         for i in metadata.keys():
             if len(i) == 2 and i[0] == 'header':

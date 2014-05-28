@@ -5,11 +5,24 @@ import os
 import re
 from jinja2 import Environment, FileSystemLoader
 
+MARKDOWN_SUPPORT=False
+BBCODE_SUPPORT=False
+
+try:
+    import markdown
+    MARKDOWN_SUPPORT=True
+except: pass
+
+try:
+    import ppcode
+    BBCODE_SUPPORT=True
+except: pass
+
 from . import simpleconfig
 
 DEFAULT_PROPS={('header','Content-type'):'text/html',
-               'handler':'template',
                'template':'default.html',
+               'title':'%{path}'
 }
 hmatch = re.compile('^header:')
 
@@ -17,9 +30,8 @@ class PixyWerk(object):
     def __init__(self, config):
         self.config = config
         if not (config.has_key('root') and config.has_key('template_paths') and config.has_key('name')):
-            raise ValueError('need root, template_paths, name configuration nodes.')
+            raise ValueError('need root, template_paths, and name configuration nodes.')
 
-        self.handlers = {'template':self.handle_template}
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
 
@@ -51,51 +63,109 @@ class PixyWerk(object):
 
         return response().done(rendered)
 
-    def handle(self, path, environ):
-        pth = os.path.join(self.config['root'],sanitize_path(path))
-        print "handling ",pth
+    def get_metadata(self, relpath):
+        # FIXME this would be trivial to cache
+        meta = dict(DEFAULT_PROPS)
 
-        propfile = None
-        contfn = None
-        if os.path.isdir(pth):
-            if os.access(os.path.join(pth, 'index.props'), os.F_OK):
-                # does XXXXX/index.props file exist for path?
-                propfile = file(os.path.join(pth, 'index.props'), 'r')
-                contfn = os.path.join(pth, 'index.cont')
-            elif os.access(os.path.join(pth, '.props'), os.F_OK):
-                propfile = file(os.path.join(pth, '.props'), 'r')
-                contfn = os.path.join(pth, '.cont')
+        pthcomps = os.path.split(relpath)
+        curpath = self.config['root']
+        for p in pthcomps:
+            metafn = os.path.join(curpath, '.meta')
+            if os.access(metafn,os.F_OK):
+                meta = simpleconfig.load_config(file(metafn, 'r'), meta)
+            curpath=os.path.join(curpath, p)
+
+        if os.path.isdir(curpath):
+            metafn = os.path.join(curpath, '.meta')
         else:
-            # does XXXXX.props exist for the path?
-            if os.access(pth + '.props', os.F_OK):
-                propfile = file(pth+'.props', 'r')
-                contfn = pth+'.cont'
+            metafn = curpath+'.meta'
 
-        if propfile:
-            props = simpleconfig.load_config(propfile,DEFAULT_PROPS)
-            # look up handler
-            if props.has_key('handler') and self.handlers.has_key(props['handler']):
-                #FIXME let's help the handlers a bit to reduce the duplicate code for packaging the response.
-                return self.handlers[props['handler']](pth, environ, props, contfn)
+        if os.access(metafn,os.F_OK):
+            meta = simpleconfig.load_config(file(metafn,'r'), meta)
+
+        return meta
+
+    def generate_index(self, path):
+        return ""
+
+    def process_md(self, cont):
+        if MARKDOWN_SUPPORT:
+            return markdown.markdown(cont)
+        else:
+            return cont
+
+    def process_bb(self, cont):
+        if BBCODE_SUPPORT:
+            return ppcode.decode(cont)
+        else:
+            return cont
+
+    def handle(self, path, environ):
+        relpth = sanitize_path(path)
+        pth = os.path.join(self.config['root'],relpth)
+
+        print "handling ",pth
+        content = ''
+        templatable = False
+        mimetype = ''
+        enctype = ''
+        # Locate content file
+        if os.path.isdir(pth):
+            # directory - render an index
+            content = self.generate_index(pth)
+            templatable = True
+        elif os.access(pth+'.cont',os.F_OK):
+            # cont file - magical pathname
+            content = file(pth+'.cont', 'r').read()
+            templatable = True
+        elif os.access(pth,os.F_OK):
+            # normal file - load and inspect
+            try:
+                ext = os.path.splitext(pth)[-1].lower().strip()
+            except:
+                ext = ''
+
+            if ext == '.md':
+                content=self.process_md(file(pth,'r').read())
+                templatable = True
+            elif ext in ('.pp', '.bb'):
+                content=self.processs_bb(file(pth, 'r').read())
+                templatable = True
             else:
-                # fixme, error code page config options
-                return response(code=503, message='Page error.', contenttype='text/plain').done('503 page error.')
+                mtypes = mimetypes.guess_type(pth)
+                if mtypes[0]:
+                    mimetype = mtypes[0]
+                else:
+                    mimetype = 'application/octet-stream'
+                if mtypes[1]:
+                    enctype = mtypes[1]
 
-        elif os.access(pth, os.F_OK):
-            # does the literal file exist?
-            mtypes = mimetypes.guess_type(pth)
-            ctype = ''
-            if mtypes[0]:
-                ctype = mtypes[0]
-            else:
-                ctype='application/octet-stream'
+                content = file(pth,'r')
 
-            r = response(contenttype=ctype)
-            if mtypes[1]:
-                r.headers['Content-encoding'] = mtypes[1]
 
-            return r.done(file(pth,'r'))
+        else:
+            # 404
+            return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')
 
-        # IF NO = 404
-        # fixme, error code page config options
-        return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')
+        # Load metadata tree
+        metadata = self.get_metadata(relpth)
+
+        # Render file
+        if templatable and content:
+            template = self.template_env.get_template(metadata['template'])
+            content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)
+            mimetype = 'text/html'
+
+        resp = response()
+        for i in metadata.keys():
+            if len(i) == 2 and i[0] == 'header':
+                resp.headers[i[1]] = metadata[i]
+
+        if mimetype:
+            resp.headers['Content-type'] = mimetype
+        if enctype:
+            resp.headers['Content-encoding'] = enctype
+
+
+        # Send contents
+        return resp.done(content)

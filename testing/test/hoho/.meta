@@ -1,4 +1,4 @@
 {
   "testproperty":"yo",
-  "title":"Ho Ho %{path}"
+  "title":"Ho Ho {path}"
 }

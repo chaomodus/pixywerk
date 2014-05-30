@@ -4,6 +4,7 @@ mimetypes.init()
 import os
 import re
 from jinja2 import Environment, FileSystemLoader
+import time
 
 MARKDOWN_SUPPORT=False
 BBCODE_SUPPORT=False
@@ -22,9 +23,13 @@ from . import simpleconfig
 
 DEFAULT_PROPS={('header','Content-type'):'text/html',
                'template':'default.html',
-               'title':'%{path}'
+               'fstemplate':'default-fs.html',
+               'title':'{path}'
 }
 hmatch = re.compile('^header:')
+
+def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
+    return time.strftime(fmat, time.localtime(value))
 
 class PixyWerk(object):
     def __init__(self, config):
@@ -34,6 +39,7 @@ class PixyWerk(object):
 
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
+        self.template_env.filters['date'] = datetimeformat
 
     def get_metadata(self, relpath):
         # FIXME this would be trivial to cache
@@ -57,8 +63,47 @@ class PixyWerk(object):
 
         return meta
 
-    def generate_index(self, path):
-        return ""
+    def generate_index(self, path,metadata):
+        template = self.template_env.get_template(metadata['fstemplate'])
+
+        dcont = os.listdir(path)
+        files = dict()
+        for item in dcont:
+            st = os.stat(os.path.join(path,item))
+            mimetype='UNK'
+            if os.path.isdir(os.path.join(path,item)):
+                mimetype='DIR'
+            else:
+                mtypes = mimetypes.guess_type(os.path.join(path,item))
+
+                if mtypes[0]:
+                    mimetype = mtypes[0]
+                else:
+                    mimetype = 'application/octet-stream'
+
+            try:
+                res= os.path.splitext(item)
+                bname='.'.join(res[0:-1])
+                ext = res[-1].lower().strip()
+            except:
+                ext = ''
+                bname = item
+
+            if ext == '.md':
+                mimetype='markdown content'
+            elif ext in ('.pp', '.bb'):
+                mimetype='bbcode content'
+            elif ext == '.meta':
+                continue
+            elif ext == '.cont':
+                item = bname
+                mimetype='content'
+
+            files[item] = {'type':mimetype, 'size':st.st_size, 'atime':st.st_atime, 'ctime':st.st_ctime, 'mtime':st.st_mtime,'fullpath':os.path.join(path,item),'relpath':os.path.join(metadata['path'], item)}
+        if files:
+            return template.render(files=files)
+        else:
+            return "no files"
 
     def process_md(self, cont):
         if MARKDOWN_SUPPORT:
@@ -72,6 +117,10 @@ class PixyWerk(object):
         else:
             return cont
 
+    def dereference_metadata(self, metadata):
+        # we'll do a format filling for subset of the metadata (just title field for now)
+        metadata['title'] = metadata['title'].format(**metadata)
+
     def do_handle(self, path, environ):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
@@ -82,6 +131,12 @@ class PixyWerk(object):
         mimetype = ''
         enctype = ''
         code = 200
+
+        # Load metadata tree
+        metadata = self.get_metadata(relpth)
+        metadata['path'] = relpth
+        metadata['abspath'] = pth
+
         # Locate content file
         if os.path.isdir(pth):
             # search for index file
@@ -90,7 +145,7 @@ class PixyWerk(object):
                 if c != 404:
                     return c, cont, mt, mimet, enct
             # directory with no index - render an index
-            content = self.generate_index(pth)
+            content = self.generate_index(pth,metadata)
             templatable = True
         elif os.access(pth+'.cont',os.F_OK):
             # cont file - magical pathname
@@ -109,6 +164,9 @@ class PixyWerk(object):
             elif ext in ('.pp', '.bb'):
                 content=self.processs_bb(file(pth, 'r').read())
                 templatable = True
+            elif ext == '.cont':
+                content=file(pth, 'r').read()
+                templatable = True
             else:
                 mtypes = mimetypes.guess_type(pth)
                 if mtypes[0]:
@@ -125,8 +183,11 @@ class PixyWerk(object):
             # 404
             return 404, None, None, None, None
 
-        # Load metadata tree
-        metadata = self.get_metadata(relpth)
+
+        # tweak metadata
+        metadata['mimetype'] = mimetype
+        metadata['enctype'] = enctype
+        self.dereference_metadata(metadata)
 
         # Render file
         if templatable and content:

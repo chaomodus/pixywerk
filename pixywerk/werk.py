@@ -21,6 +21,8 @@ try:
     BBCODE_SUPPORT=True
 except: pass
 
+DEBUG=True
+
 from . import simpleconfig
 
 DEFAULT_PROPS={('header','Content-type'):'text/html',
@@ -138,7 +140,7 @@ class PixyWerk(object):
         else:
             ip = environ['REMOTE_ADDR']
 
-        self.log('handle','<{ip}> serving {path}', ip=ip, path=pth)
+        DEBUG and self.log('handle-debug','<{ip}> entering handle for {path}', ip=ip, path=pth)
         content = ''
         templatable = False
         mimetype = ''
@@ -194,6 +196,7 @@ class PixyWerk(object):
 
         else:
             # 404
+            self.log('handle','<{ip}> {path} -> 404', ip=ip, path=pth)
             return 404, None, None, None, None
 
 
@@ -208,6 +211,7 @@ class PixyWerk(object):
             content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)
             mimetype = 'text/html'
 
+        self.log('handle','<{ip}> {path} -> 200', ip=ip, path=pth)
         return code, content, metadata, mimetype, enctype
 
     def handle(self, path, environ):

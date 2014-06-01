@@ -133,7 +133,12 @@ class PixyWerk(object):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
-        self.log('handle','serving {path}', path=pth)
+        if environ.has_key('HTTP_X_REAL_IP'):
+            ip = environ['HTTP_X_REAL_IP']
+        else:
+            ip = environ['REMOTE_ADDR']
+
+        self.log('handle','<{ip}> serving {path}', ip=ip, path=pth)
         content = ''
         templatable = False
         mimetype = ''

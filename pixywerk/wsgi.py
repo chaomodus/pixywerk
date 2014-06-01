@@ -54,7 +54,11 @@ def print_debug(dictionary):
 
 def debug(env):
     global mywerk
-    mywerk.log('debug','SERVING DEBUG PAGE')
+    if env.has_key('HTTP_X_REAL_IP'):
+        ip = env['HTTP_X_REAL_IP']
+    else:
+        ip = env['REMOTE_ADDR']
+    mywerk.log('debug','<{ip}> SERVING DEBUG PAGE', ip=ip)
     cont = "<html><body>"+print_debug(env)+"</body></html>"
     resp = response()
     return resp.done(cont)

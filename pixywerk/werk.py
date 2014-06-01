@@ -5,6 +5,8 @@ import os
 import re
 from jinja2 import Environment, FileSystemLoader
 import time
+import datetime
+import sys
 
 MARKDOWN_SUPPORT=False
 BBCODE_SUPPORT=False
@@ -32,7 +34,7 @@ def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
     return time.strftime(fmat, time.localtime(value))
 
 class PixyWerk(object):
-    def __init__(self, config):
+    def __init__(self, config, output_port = sys.stderr):
         self.config = config
         if not (config.has_key('root') and config.has_key('template_paths') and config.has_key('name')):
             raise ValueError('need root, template_paths, and name configuration nodes.')
@@ -40,6 +42,12 @@ class PixyWerk(object):
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
         self.template_env.filters['date'] = datetimeformat
+        self.output_port = output_port
+
+    def log(self, system, message, **var):
+        output = datetime.datetime.now().isoformat() + " ["+system+"] "+message.format(**var)
+
+        self.output_port.write(output + "\n")
 
     def get_metadata(self, relpath):
         # FIXME this would be trivial to cache
@@ -125,7 +133,7 @@ class PixyWerk(object):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
-        print "handling ",pth
+        self.log('handle','serving {path}', path=pth)
         content = ''
         templatable = False
         mimetype = ''

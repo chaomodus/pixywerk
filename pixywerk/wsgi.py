@@ -69,15 +69,19 @@ def do_werk(environ, start_response):
 
     if config is None:
         init(environ)
-    uri = environ['PATH_INFO']
-    for f in filters:
-        uri = f.sub('',uri)
+    raw_uri = environ['RAW_URI']
+    parsed_uri = urlparse.urlparse(raw_uri)
+    path = parsed_uri.path
+    environ['PARSED_URI'] = parsed_uri
 
-    if uri and uri[-1] == '/':
-        uri = uri[:-1]
+    for f in filters:
+        path = f.sub('',path)
+
+    if path and path[-1] == '/':
+        path = path[:-1]
 
     if not len(uri):
-        uri = '/'
+        path = '/'
 
     resp = '404 Not Found'
     headr = dict()

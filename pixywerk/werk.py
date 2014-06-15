@@ -36,7 +36,7 @@ def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
     return time.strftime(fmat, time.localtime(value))
 
 class PixyWerk(object):
-    def __init__(self, config, output_port = sys.stderr):
+    def __init__(self, config, log_port):
         self.config = config
         if not (config.has_key('root') and config.has_key('template_paths') and config.has_key('name')):
             raise ValueError('need root, template_paths, and name configuration nodes.')
@@ -44,12 +44,7 @@ class PixyWerk(object):
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
         self.template_env.filters['date'] = datetimeformat
-        self.output_port = output_port
-
-    def log(self, system, message, **var):
-        output = datetime.datetime.now().isoformat() + " ["+system+"] "+message.format(**var)
-
-        self.output_port.write(output + "\n")
+        self.log = log_port
 
     def get_metadata(self, relpath):
         # FIXME this would be trivial to cache
@@ -140,7 +135,7 @@ class PixyWerk(object):
         else:
             ip = environ['REMOTE_ADDR']
 
-        DEBUG and self.log('handle-debug','<{ip}> entering handle for {path}', ip=ip, path=pth)
+        DEBUG and self.log(self,'handle-debug','<{ip}> entering handle for {path}', ip=ip, path=pth)
         content = ''
         templatable = False
         mimetype = ''
@@ -196,7 +191,7 @@ class PixyWerk(object):
 
         else:
             # 404
-            self.log('handle','<{ip}> {path} -> 404', ip=ip, path=pth)
+            self.log(self,'handle','<{ip}> {path} -> 404', ip=ip, path=pth)
             return 404, None, None, None, None
 
 
@@ -211,7 +206,7 @@ class PixyWerk(object):
             content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)
             mimetype = 'text/html'
 
-        self.log('handle','<{ip}> {path} -> 200', ip=ip, path=pth)
+        self.log(self,'handle','<{ip}> {path} -> 200', ip=ip, path=pth)
         return code, content, metadata, mimetype, enctype
 
     def handle(self, path, environ):

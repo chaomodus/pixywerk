@@ -1,9 +1,12 @@
 import os
 from . import werk
 from . import simpleconfig
+from . import log
 from .utils import response
 import re
 import sys
+import os
+import urlparse
 
 default_config = {
     'root':os.getcwd(),
@@ -16,33 +19,47 @@ default_config = {
 mywerk = None
 config = None
 filters = None
+logger = None
 
 def init(environ):
     global config
     global mywerk
     global filters
+    global logger
     config = default_config
 
     if environ.has_key('wsgi.errors'):
-        output_port = environ['wsgi.errors']
+        log_ports = [environ['wsgi.errors'],]
     else:
-        output_port = sys.stderr
+        log_ports = [sys.stderr,]
 
     if os.environ.has_key('PIXYWERK_CONFIG'):
         infile = file(os.environ['PIXYWERK_CONFIG'],'r')
         config = simpleconfig.load_config(infile, config)
         print "loaded config ",os.environ['PIXYWERK_CONFIG']
 
+    if not config.has_key('workingdir'):
+        config['workingdir'] = config['root']
+    try:
+        os.chdir(config['workingdir'])
+    except:
+        print "error changing working directory."
+
+    if config.has_key('logfile'):
+        log_ports.append(config['logfile'])
+
+    logger = log.Logger(*log_ports)
+
     filters = []
     for f in config['wsgi_path_filters']:
         filters.append(re.compile(f))
 
-    mywerk = werk.PixyWerk(config, output_port)
-    mywerk.log('WSGI','PIXYWERK startup')
-    mywerk.log('WSGI','configuration:')
+    mywerk = werk.PixyWerk(config, logger)
+    logger(None, 'WSGI','PIXYWERK startup')
+    logger(None, 'WSGI','configuration:')
     for k,v in config.items():
-        mywerk.log('WSGI','{key} = {value}', key=k, value=v)
-    mywerk.log('WSGI','ready')
+        logger(None,'WSGI','{key} = {value}', key=k, value=v)
+    logger(None,'WSGI','ready')
 
 
 
@@ -54,11 +71,12 @@ def print_debug(dictionary):
 
 def debug(env):
     global mywerk
+    global logger
     if env.has_key('HTTP_X_REAL_IP'):
         ip = env['HTTP_X_REAL_IP']
     else:
         ip = env['REMOTE_ADDR']
-    mywerk.log('debug','<{ip}> SERVING DEBUG PAGE', ip=ip)
+    logger(None,'debug','<{ip}> SERVING DEBUG PAGE', ip=ip)
     cont = "<html><body>"+print_debug(env)+"</body></html>"
     resp = response()
     return resp.done(cont)
@@ -80,16 +98,16 @@ def do_werk(environ, start_response):
     if path and path[-1] == '/':
         path = path[:-1]
 
-    if not len(uri):
+    if not len(path):
         path = '/'
 
     resp = '404 Not Found'
     headr = dict()
     content = '404 NOT FOUND'
-    if uri == '/debug':
+    if path == '/debug':
         resp, headr, content = debug(environ)
     else:
-        resp, headr, content = mywerk.handle(uri, environ)
+        resp, headr, content = mywerk.handle(path, environ)
 
     headr.append(('X-CMS','PixyWerk'))
 

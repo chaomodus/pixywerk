@@ -47,6 +47,7 @@ class PixyWerk(object):
 
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
+        self.template_env.globals['getmetadata'] = self.get_metadata
         self.template_env.filters['date'] = datetimeformat
 
     def get_metadata(self, relpath):
@@ -211,7 +212,7 @@ class PixyWerk(object):
         # Render file
         if templatable and content:
             if formatable:
-                conttp = Template(content)
+                conttp = self.template_env.from_string(content,globals={'getmetadata':self.get_metadata})
                 content = conttp.render(environ=environ, path=relpth, metadata=metadata)
             template = self.template_env.get_template(metadata['template'])
             content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)

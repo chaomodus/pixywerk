@@ -5,3 +5,11 @@
 <tr><td>{{k}}</td><td>{{metadata[k]}}</td></tr>
 {% endfor %}
 </table>
+<h1>Metadata for hoho</h1>
+{% set hohomd = getmetadata('hoho/') %}
+<table class="metadata">
+<tr><th>key</th><th>value</th></tr>
+{% for k in hohomd.keys() %}
+<tr><td>{{k}}</td><td>{{hohomd[k]}}</td></tr>
+{% endfor %}
+</table>

@@ -3,10 +3,13 @@ import mimetypes
 mimetypes.init()
 import os
 import re
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Template
 import time
 import datetime
 import sys
+import logging
+
+log = logging.getLogger('pixywerk.werk')
 
 MARKDOWN_SUPPORT=False
 BBCODE_SUPPORT=False
@@ -28,7 +31,8 @@ from . import simpleconfig
 DEFAULT_PROPS={('header','Content-type'):'text/html',
                'template':'default.html',
                'fstemplate':'default-fs.html',
-               'title':'{path}'
+               'title':'{path}',
+               'dereference':('title',),
 }
 hmatch = re.compile('^header:')
 
@@ -36,7 +40,7 @@ def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
     return time.strftime(fmat, time.localtime(value))
 
 class PixyWerk(object):
-    def __init__(self, config, log_port):
+    def __init__(self, config):
         self.config = config
         if not (config.has_key('root') and config.has_key('template_paths') and config.has_key('name')):
             raise ValueError('need root, template_paths, and name configuration nodes.')
@@ -44,7 +48,6 @@ class PixyWerk(object):
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
         self.template_env.filters['date'] = datetimeformat
-        self.log = log_port
 
     def get_metadata(self, relpath):
         # FIXME this would be trivial to cache
@@ -124,7 +127,9 @@ class PixyWerk(object):
 
     def dereference_metadata(self, metadata):
         # we'll do a format filling for subset of the metadata (just title field for now)
-        metadata['title'] = metadata['title'].format(**metadata)
+        for m in metadata['dereference']:
+            # this is so meta
+            metadata[m] = metadata[m].format(**metadata)
 
     def do_handle(self, path, environ):
         relpth = sanitize_path(path)
@@ -135,9 +140,10 @@ class PixyWerk(object):
         else:
             ip = environ['REMOTE_ADDR']
 
-        DEBUG and self.log(self,'handle-debug','<{ip}> entering handle for {path}', ip=ip, path=pth)
+        log.debug('handle: <{0}> entering handle for {1}'.format(ip, pth))
         content = ''
         templatable = False
+        formatable = False
         mimetype = ''
         enctype = ''
         code = 200
@@ -161,6 +167,7 @@ class PixyWerk(object):
             # cont file - magical pathname
             content = file(pth+'.cont', 'r').read()
             templatable = True
+            formatable = True
         elif os.access(pth,os.F_OK):
             # normal file - load and inspect
             try:
@@ -177,6 +184,7 @@ class PixyWerk(object):
             elif ext == '.cont':
                 content=file(pth, 'r').read()
                 templatable = True
+                formatable = True
             else:
                 mtypes = mimetypes.guess_type(pth)
                 if mtypes[0]:
@@ -191,7 +199,7 @@ class PixyWerk(object):
 
         else:
             # 404
-            self.log(self,'handle','<{ip}> {path} -> 404', ip=ip, path=pth)
+            log.info('handle: <{0}> {1} -> 404'.format(ip, pth))
             return 404, None, None, None, None
 
 
@@ -202,11 +210,14 @@ class PixyWerk(object):
 
         # Render file
         if templatable and content:
+            if formatable:
+                conttp = Template(content)
+                content = conttp.render(environ=environ, path=relpth, metadata=metadata)
             template = self.template_env.get_template(metadata['template'])
             content = template.render(content=content, environ=environ, path=relpth, metadata=metadata)
             mimetype = 'text/html'
 
-        self.log(self,'handle','<{ip}> {path} -> 200', ip=ip, path=pth)
+        log.info('handle: <{0}> {1} -> 200'.format(ip, pth))
         return code, content, metadata, mimetype, enctype
 
     def handle(self, path, environ):

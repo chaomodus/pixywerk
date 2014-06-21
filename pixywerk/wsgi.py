@@ -1,12 +1,13 @@
 import os
 from . import werk
 from . import simpleconfig
-from . import log
 from .utils import response
 import re
 import sys
 import os
 import urlparse
+import logging
+import logging.handlers
 
 default_config = {
     'root':os.getcwd(),
@@ -19,47 +20,63 @@ default_config = {
 mywerk = None
 config = None
 filters = None
-logger = None
+
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False
+})
+
+log = logging.getLogger('pixywerk')
+log.setLevel(logging.DEBUG)
+
 
 def init(environ):
     global config
     global mywerk
     global filters
-    global logger
     config = default_config
 
     if environ.has_key('wsgi.errors'):
-        log_ports = [environ['wsgi.errors'],]
+        stderr = environ['wsgi.errors']
     else:
-        log_ports = [sys.stderr,]
+        stderr = sys.stderr
+
+    lfmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    sh = logging.StreamHandler(stream=stderr)
+    sh.setLevel(logging.DEBUG)
+    sh.setFormatter(lfmt)
+    log.addHandler(sh)
 
     if os.environ.has_key('PIXYWERK_CONFIG'):
         infile = file(os.environ['PIXYWERK_CONFIG'],'r')
         config = simpleconfig.load_config(infile, config)
-        print "loaded config ",os.environ['PIXYWERK_CONFIG']
+        log.info("init: loaded config "+os.environ['PIXYWERK_CONFIG'])
+    else:
+        log.error("no configuration specified! Please set PIXYWERK_CONFIG.")
 
     if not config.has_key('workingdir'):
         config['workingdir'] = config['root']
     try:
         os.chdir(config['workingdir'])
     except:
-        print "error changing working directory."
+        log.error('init: error changing working directory.')
 
     if config.has_key('logfile'):
-        log_ports.append(config['logfile'])
-
-    logger = log.Logger(*log_ports)
+        fh = logging.handlers.RotatingFileHandler(config['logfile'], backupCount=5)
+        fh.setLevel(logging.INFO)
+        fh.setFormatter(lfmt)
+        log.addHandler(fh)
 
     filters = []
     for f in config['wsgi_path_filters']:
         filters.append(re.compile(f))
 
-    mywerk = werk.PixyWerk(config, logger)
-    logger(None, 'WSGI','PIXYWERK startup')
-    logger(None, 'WSGI','configuration:')
+    mywerk = werk.PixyWerk(config)
+    log.info("init: Welcome to PixyWerk.")
+    log.info('init: configuration:')
     for k,v in config.items():
-        logger(None,'WSGI','{key} = {value}', key=k, value=v)
-    logger(None,'WSGI','ready')
+        log.info('init:   {0} = {1}'.format(k,v))
+    log.info('init: ready.')
 
 
 
@@ -71,12 +88,11 @@ def print_debug(dictionary):
 
 def debug(env):
     global mywerk
-    global logger
     if env.has_key('HTTP_X_REAL_IP'):
         ip = env['HTTP_X_REAL_IP']
     else:
         ip = env['REMOTE_ADDR']
-    logger(None,'debug','<{ip}> SERVING DEBUG PAGE', ip=ip)
+    log.info('debug: <{0}> serving debug page.'.format(ip,))
     cont = "<html><body>"+print_debug(env)+"</body></html>"
     resp = response()
     return resp.done(cont)

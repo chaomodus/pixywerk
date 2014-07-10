@@ -67,9 +67,7 @@ def init(environ):
         fh.setFormatter(lfmt)
         log.addHandler(fh)
 
-    filters = []
-    for f in config['wsgi_path_filters']:
-        filters.append(re.compile(f))
+    filters = [re.compile(f) for f in config['wsgi_path_filters']]
 
     mywerk = werk.PixyWerk(config)
     log.info("init: Welcome to PixyWerk.")

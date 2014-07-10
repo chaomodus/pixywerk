@@ -127,7 +127,6 @@ class PixyWerk(object):
             return cont
 
     def dereference_metadata(self, metadata):
-        # we'll do a format filling for subset of the metadata (just title field for now)
         for m in metadata['dereference']:
             # this is so meta
             metadata[m] = metadata[m].format(**metadata)
@@ -157,9 +156,9 @@ class PixyWerk(object):
         # Locate content file
         if os.path.isdir(pth):
             # search for index file
-            for idxf in ('index','index.html','index.md','index.pp'):
+            for idxf in ('index','index.html','index.md','index.pp','index.bb'):
                 c, cont, mt, mimet, enct = self.do_handle(path+'/'+idxf, environ)
-                if c != 404:
+                if c == 200:
                     return c, cont, mt, mimet, enct
             # directory with no index - render an index
             content = self.generate_index(pth,metadata)

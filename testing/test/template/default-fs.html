@@ -1,6 +1,6 @@
 <table class="werk-file-list">
 <tr class="werk-file-list-head"><th>file</th><th>type</th><th>size</th><th>last change</th></tr>
 {% for f in files.keys() %}
-<tr class="werk-file-list-item"><td><a href="{{files[f].relpath}}">{{f}}</a></td><td>{{files[f].type}}</td><td>{{files[f].size}}</td><td>{{files[f].ctime | date}}</td></tr>
+<tr class="werk-file-list-item"><td><a href="/{{files[f].relpath}}">{{f}}</a></td><td>{{files[f].type}}</td><td>{{files[f].size}}</td><td>{{files[f].ctime | date}}</td></tr>
 {% endfor %}
 </table>

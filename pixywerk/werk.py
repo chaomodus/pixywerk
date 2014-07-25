@@ -79,6 +79,8 @@ class PixyWerk(object):
         files = dict()
         for item in dcont:
             st = os.stat(os.path.join(path,item))
+            if item in self.config['pathelement_blacklist']:
+                continue
             mimetype='UNK'
             if os.path.isdir(os.path.join(path,item)):
                 mimetype='DIR'

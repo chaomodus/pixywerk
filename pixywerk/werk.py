@@ -148,7 +148,7 @@ class PixyWerk(object):
                 ip = environ['HTTP_X_REAL_IP']
             else:
                 ip = environ['REMOTE_ADDR']
-        except KeyError:
+        except (KeyError, AttributeError):
             ip = 'unk'
 
         log.debug('handle: <{0}> entering handle for {1}'.format(ip, pth))

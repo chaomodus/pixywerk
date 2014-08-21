@@ -48,6 +48,7 @@ class PixyWerk(object):
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
         self.template_env.globals['getmetadata'] = self.get_metadata
+        self.template_env.globals['getcontent'] = self.get_content
         self.template_env.filters['date'] = datetimeformat
 
     def get_metadata(self, relpath):
@@ -71,6 +72,11 @@ class PixyWerk(object):
             meta = simpleconfig.load_config(file(metafn,'r'), meta)
 
         return meta
+
+    def get_content(self, path):
+        # FIXME this should contain the actual filesystem access blob instead of do_handle.
+        code, content, metadata, mimetype, enctype = self.do_handle(path)
+        return content
 
     def generate_index(self, path,metadata):
         template = self.template_env.get_template(metadata['fstemplate'])
@@ -133,14 +139,17 @@ class PixyWerk(object):
             # this is so meta
             metadata[m] = metadata[m].format(**metadata)
 
-    def do_handle(self, path, environ):
+    def do_handle(self, path, environ=None):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
-        if environ.has_key('HTTP_X_REAL_IP'):
-            ip = environ['HTTP_X_REAL_IP']
-        else:
-            ip = environ['REMOTE_ADDR']
+        try:
+            if environ.has_key('HTTP_X_REAL_IP'):
+                ip = environ['HTTP_X_REAL_IP']
+            else:
+                ip = environ['REMOTE_ADDR']
+        except KeyError:
+            ip = 'unk'
 
         log.debug('handle: <{0}> entering handle for {1}'.format(ip, pth))
         content = ''

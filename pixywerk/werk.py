@@ -209,7 +209,7 @@ class PixyWerk(object):
             if ext in file_types.keys():
                 content = file_types[ext]['processor'](file(pth,'r').read().decode('utf-8'))
                 templatable = file_types[ext]['templatable']
-                mimetype = file_types['mime-type']
+                mimetype = file_types[ext]['mime-type']
             elif ext == '.cont':
                 content=file(pth, 'r').read().decode('utf-8')
                 templatable = True

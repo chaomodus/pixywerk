@@ -45,12 +45,6 @@ DEFAULT_PROPS={('header','Content-type'):'text/html',
 
 hmatch = re.compile('^header:')
 
-bbcode_file_spec = {'mimeinfo':'bbcode content','mime-type':'text/html','templatable':True,'processor':process_bb}
-file_types = {'.md':{'mimeinfo':'markdown content','mime-type':'text/html','templatable':True,'processor':process_md},
-              '.pp':bbcode_file_spec,
-              '.bb':bbcode_file_spec,
-              '.scss':{'mimeinfo':'SCSS file','mime-type':'text/css','templatable':False,'processor':process_scss}}
-
 def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
     return time.strftime(fmat, time.localtime(value))
 
@@ -71,6 +65,13 @@ def process_scss(cont):
         return scssdecoder.complie(cont)
     else:
         return cont
+
+
+bbcode_file_spec = {'mimeinfo':'bbcode content','mime-type':'text/html','templatable':True,'processor':process_bb}
+file_types = {'.md':{'mimeinfo':'markdown content','mime-type':'text/html','templatable':True,'processor':process_md},
+              '.pp':bbcode_file_spec,
+              '.bb':bbcode_file_spec,
+              '.scss':{'mimeinfo':'SCSS file','mime-type':'text/css','templatable':False,'processor':process_scss}}
 
 class PixyWerk(object):
     def __init__(self, config):

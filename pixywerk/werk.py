@@ -223,7 +223,7 @@ class PixyWerk(object):
                 if mtypes[1]:
                     enctype = mtypes[1]
 
-                content = file(pth,'r').decode('utf-8')
+                content = file(pth,'r')
 
 
         else:

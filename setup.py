@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='ppcode',
-      version='alpha4',
+      version='alpha5',
       description='A simple filesystem based WSGI CMS',
       url='https://gitorious.org/pixywerk/pixywerk/',
       author='Cas Rusnov',

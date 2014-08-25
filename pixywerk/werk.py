@@ -13,6 +13,7 @@ log = logging.getLogger('pixywerk.werk')
 
 MARKDOWN_SUPPORT=False
 BBCODE_SUPPORT=False
+SCSS_SUPPORT=False
 
 try:
     import markdown
@@ -24,6 +25,13 @@ try:
     BBCODE_SUPPORT=True
 except: pass
 
+try:
+    import scss
+    SCSS_SUPPORT=True
+    scssdecoder = scss.Scss()
+except: pass
+
+
 DEBUG=True
 
 from . import simpleconfig
@@ -34,10 +42,35 @@ DEFAULT_PROPS={('header','Content-type'):'text/html',
                'title':'{path}',
                'dereference':('title',),
 }
+
 hmatch = re.compile('^header:')
+
+bbcode_file_spec = {'mimeinfo':'bbcode content','mime-type':'text/html','templatable':True,'processor':process_bb}
+file_types = {'.md':{'mimeinfo':'markdown content','mime-type':'text/html','templatable':True,'processor':process_md},
+              '.pp':bbcode_file_spec,
+              '.bb':bbcode_file_spec,
+              '.scss':{'mimeinfo':'SCSS file','mime-type':'text/css','templatable':False,'processor':process_scss}}
 
 def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
     return time.strftime(fmat, time.localtime(value))
+
+def process_md(cont):
+    if MARKDOWN_SUPPORT:
+        return markdown.markdown(cont)
+    else:
+        return cont
+
+def process_bb(cont):
+    if BBCODE_SUPPORT:
+        return ppcode.decode(cont)
+    else:
+        return cont
+
+def process_scss(cont):
+    if SCSS_SUPPORT:
+        return scssdecoder.complie(cont)
+    else:
+        return cont
 
 class PixyWerk(object):
     def __init__(self, config):
@@ -106,10 +139,8 @@ class PixyWerk(object):
                 ext = ''
                 bname = item
 
-            if ext == '.md':
-                mimetype='markdown content'
-            elif ext in ('.pp', '.bb'):
-                mimetype='bbcode content'
+            if file_types.has_key(ext):
+                mimetype = file_types[ext]['mimeinfo']
             elif ext == '.meta':
                 continue
             elif ext == '.cont':
@@ -121,18 +152,6 @@ class PixyWerk(object):
             return template.render(files=files)
         else:
             return "no files"
-
-    def process_md(self, cont):
-        if MARKDOWN_SUPPORT:
-            return markdown.markdown(cont)
-        else:
-            return cont
-
-    def process_bb(self, cont):
-        if BBCODE_SUPPORT:
-            return ppcode.decode(cont)
-        else:
-            return cont
 
     def dereference_metadata(self, metadata):
         for m in metadata['dereference']:
@@ -176,7 +195,7 @@ class PixyWerk(object):
             templatable = True
         elif os.access(pth+'.cont',os.F_OK):
             # cont file - magical pathname
-            content = file(pth+'.cont', 'r').read()
+            content = file(pth+'.cont', 'r').read().decode('utf-8')
             templatable = True
             formatable = True
         elif os.access(pth,os.F_OK):
@@ -186,14 +205,12 @@ class PixyWerk(object):
             except:
                 ext = ''
 
-            if ext == '.md':
-                content=self.process_md(file(pth,'r').read())
-                templatable = True
-            elif ext in ('.pp', '.bb'):
-                content=self.processs_bb(file(pth, 'r').read())
-                templatable = True
+            if ext in file_types.keys():
+                content = file_types[ext]['processor'](file(pth,'r').read().decode('utf-8'))
+                templatable = file_types[ext]['templatable']
+                mimetype = file_types['mime-type']
             elif ext == '.cont':
-                content=file(pth, 'r').read()
+                content=file(pth, 'r').read().decode('utf-8')
                 templatable = True
                 formatable = True
             else:
@@ -205,7 +222,7 @@ class PixyWerk(object):
                 if mtypes[1]:
                     enctype = mtypes[1]
 
-                content = file(pth,'r')
+                content = file(pth,'r').decode('utf-8')
 
 
         else:

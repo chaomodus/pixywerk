@@ -109,7 +109,7 @@ class PixyWerk(object):
 
     def get_content(self, path):
         # FIXME this should contain the actual filesystem access blob instead of do_handle.
-        code, content, metadata, mimetype, enctype = self.do_handle(path)
+        code, content, metadata, mimetype, enctype = self.do_handle(path, template_override=True)
         return content
 
     def generate_index(self, path,metadata):
@@ -159,7 +159,7 @@ class PixyWerk(object):
             # this is so meta
             metadata[m] = metadata[m].format(**metadata)
 
-    def do_handle(self, path, environ=None):
+    def do_handle(self, path, environ=None, template_override=False):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
@@ -238,7 +238,7 @@ class PixyWerk(object):
         self.dereference_metadata(metadata)
 
         # Render file
-        if templatable and content:
+        if templatable and content and not template_override:
             if formatable:
                 conttp = self.template_env.from_string(content,globals={'getmetadata':self.get_metadata})
                 content = conttp.render(environ=environ, path=relpth, metadata=metadata)

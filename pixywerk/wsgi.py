@@ -1,3 +1,5 @@
+"""Adapts PixyWerk for WSGI usage."""
+
 import os
 from . import werk
 from . import simpleconfig
@@ -31,6 +33,7 @@ log.setLevel(logging.DEBUG)
 
 
 def init(environ):
+    """Sets up statics, logging, loads configuration file and initiates PixyWerk."""
     global config
     global mywerk
     global filters
@@ -79,12 +82,14 @@ def init(environ):
 
 
 def print_debug(dictionary):
+    """Format a dictionary. (DEBUG PURPOSES)"""
     outp = '<table>'
     for k,v in dictionary.items():
         outp += "<tr><td>%s</td><td>%s</td></tr>" % (k, v)
     return outp + '</table>'
 
 def debug(env):
+    """Print out environment and other information about a query. (DEBUG PURPOSES)"""
     global mywerk
     if env.has_key('HTTP_X_REAL_IP'):
         ip = env['HTTP_X_REAL_IP']
@@ -96,6 +101,8 @@ def debug(env):
     return resp.done(cont)
 
 def do_werk(environ, start_response):
+    """This is teh callable which implements the WSGI protocol, and is notionally the "application" launched by the WSGI runtime."""
+    # FIXME most of this can be ported for the self-hosting mode and should be refactored once that is implemented.
     global config
     global mywerk
 

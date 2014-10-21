@@ -1,3 +1,5 @@
+"""Core PixyWerk functionality."""
+
 from .utils import response, sanitize_path
 import mimetypes
 mimetypes.init()
@@ -46,6 +48,7 @@ DEFAULT_PROPS={('header','Content-type'):'text/html',
 hmatch = re.compile('^header:')
 
 def datetimeformat(value, fmat='%Y-%m-%d %T %Z'):
+    """Format date/time for jinja."""
     return time.strftime(fmat, time.localtime(value))
 
 def process_md(cont):
@@ -74,6 +77,7 @@ file_types = {'.md':{'mimeinfo':'markdown content','mime-type':'text/html','temp
               '.scss':{'mimeinfo':'SCSS file','mime-type':'text/css','templatable':False,'processor':process_scss}}
 
 class PixyWerk(object):
+    """A full CMS system based on mapping a portion of the filesystem to web, with templates, automatic format handling and per-file heirarchical metadata."""
     def __init__(self, config):
         self.config = config
         if not (config.has_key('root') and config.has_key('template_paths') and config.has_key('name')):
@@ -86,6 +90,7 @@ class PixyWerk(object):
         self.template_env.filters['date'] = datetimeformat
 
     def get_metadata(self, relpath):
+        """Return the metadata (dict) for a path relative to the root path."""
         # FIXME this would be trivial to cache
         meta = dict(DEFAULT_PROPS)
 
@@ -108,11 +113,13 @@ class PixyWerk(object):
         return meta
 
     def get_content(self, path):
+        """Return the rendered content for an absolute path."""
         # FIXME this should contain the actual filesystem access blob instead of do_handle.
         code, content, metadata, mimetype, enctype = self.do_handle(path, template_override=True)
         return content
 
     def generate_index(self, path,metadata):
+        """Use the template contained in fstemplate to generate a content blob representing a filesystem index."""
         template = self.template_env.get_template(metadata['fstemplate'])
 
         dcont = os.listdir(path)
@@ -155,11 +162,13 @@ class PixyWerk(object):
             return "no files"
 
     def dereference_metadata(self, metadata):
+        """Stub. Derefernces metadata refrenced in the derefernce config option with other metadata values."""
         for m in metadata['dereference']:
             # this is so meta
             metadata[m] = metadata[m].format(**metadata)
 
     def do_handle(self, path, environ=None, template_override=False):
+        """Guts of single access handling. Here be dragons."""
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
 
@@ -250,6 +259,7 @@ class PixyWerk(object):
         return code, content, metadata, mimetype, enctype
 
     def handle(self, path, environ):
+        """Handle one access, wrapping results in a response object."""
         code, content, metadata, mimetype, enctype = self.do_handle(path, environ)
         if code == 404:
             return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')

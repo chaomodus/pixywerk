@@ -5,10 +5,8 @@ import mimetypes
 mimetypes.init()
 import os
 import re
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader
 import time
-import datetime
-import sys
 import logging
 
 log = logging.getLogger('pixywerk.werk')

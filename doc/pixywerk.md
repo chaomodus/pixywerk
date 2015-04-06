@@ -8,17 +8,16 @@ TO GET
 
 Get source codes from gitorious:
 
-  git clone https://gitorious.org/pixywerk/pixywerk.git
-  git clone https://gitorious.org/ppcode/ppcode.git (for bbcode support, optional)
+  git clone https://github.com/chaomodus/pixywerk
+  git clone https://github.com/chaomudos/ppcode (for bbcode support, optional)
 
-Get these additional python packgase:
+Get these additional python packages:
 
   setuptools (package python-setuptools on debian derivatives, standard on most python installs)
   jinja2 (package python-jinja2 in debian derivatives)
-  markdown (package python-markdown in debian derivatives) (for markdown support, optional)
+  gevent (package python-gevent on debian derivatives) (self hossting / start-pixywerk)
 
-You will also need a WSGI host to run pixywerk, such as greenunicorn (which seems to have bugs for
-running in production but seems to work for testing in foreground mode).
+  markdown (package python-markdown in debian derivatives) (for markdown support, optional)
 
 Install source codes:
 
@@ -65,5 +64,3 @@ PixyWerk gets its configuration from the environment variable PIXYWERK_CONFIG.  
 
 Running A Test Deployment
 -----------------------------------------
-
-The most simple way to start a test deploy is to specify the configuration along with the gunicorn startup

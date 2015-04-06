@@ -6,9 +6,9 @@ from . import simpleconfig
 from .utils import response
 import re
 import sys
-import os
 import urlparse
 import logging
+import logging.config
 import logging.handlers
 
 default_config = {
@@ -108,10 +108,15 @@ def do_werk(environ, start_response):
 
     if config is None:
         init(environ)
-    raw_uri = environ['RAW_URI']
-    parsed_uri = urlparse.urlparse(raw_uri)
-    path = parsed_uri.path
-    environ['PARSED_URI'] = parsed_uri
+
+    try:
+        raw_uri = environ['RAW_URI']
+        parsed_uri = urlparse.urlparse(raw_uri)
+        path = parsed_uri.path
+        environ['PARSED_URI'] = parsed_uri
+    except KeyError:
+        path = environ['PATH_INFO']
+        environ['PARSED_URI'] = None
 
     for f in filters:
         path = f.sub('',path)

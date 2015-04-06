@@ -3,8 +3,7 @@ pixywerk
 
 A simple WSGI file-system-oriented CMS
 
+Running
+-------
 
-running with gunicorn
----------------------
-
-gunicorn -e "PIXYWERK_CONFIG=path/to/config.json" pixywerk.wsgi:do_werk
+PIXYWERK_CONFIG=path/to/config.json start-pixywerk <server> <port>

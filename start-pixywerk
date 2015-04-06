@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+# -*- python -*-
+from gevent import wsgi
+import pixywerk
+import pixywerk.wsgi
+import sys
+
+host = '0.0.0.0'
+port = 8000
+try:
+    host = sys.argv[1]
+    port = int(sys.argv[2])
+except:
+    pass
+print "*** PIXYWERK %s ***" % pixywerk.version
+wsgi.WSGIServer((host, port), pixywerk.wsgi.do_werk, spawn='default').serve_forever()

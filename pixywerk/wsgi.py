@@ -121,17 +121,22 @@ def do_werk(environ, start_response):
     for f in filters:
         path = f.sub('',path)
 
-    if path and path[-1] == '/':
-        path = path[:-1]
+    # if path and path[-1] == '/':
+    #     path = path[:-1]
 
-    if not len(path):
-        path = '/'
+    # if not len(path):
+    #     path = '/'
 
+    relpath, pth, is_dir = mywerk.path_info(path)
     resp = '404 Not Found'
-    headr = dict()
+    headr = list()
     content = '404 NOT FOUND'
     if path == '/debug':
         resp, headr, content = debug(environ)
+    elif is_dir and path[-1] != '/':
+        resp = '301 Moved Permanantly'
+        headr.append(('Location',path + '/'))
+        content = ''
     else:
         resp, headr, content = mywerk.handle(path, environ)
 

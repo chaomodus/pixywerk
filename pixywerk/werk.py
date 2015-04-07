@@ -165,10 +165,15 @@ class PixyWerk(object):
             # this is so meta
             metadata[m] = metadata[m].format(**metadata)
 
-    def do_handle(self, path, environ=None, template_override=False):
-        """Guts of single access handling. Here be dragons."""
+    def path_info(self, path):
         relpth = sanitize_path(path)
         pth = os.path.join(self.config['root'],relpth)
+        is_dir = os.path.isdir(pth)
+        return relpth, pth, is_dir
+
+    def do_handle(self, path, environ=None, template_override=False):
+        """Guts of single access handling. Here be dragons."""
+        relpth, pth, is_dir = self.path_info(path)
 
         try:
             if environ.has_key('HTTP_X_REAL_IP'):
@@ -191,8 +196,14 @@ class PixyWerk(object):
         metadata['path'] = relpth
         metadata['abspath'] = pth
 
+        # handle redirects from the metadata file
+        if metadata.has_key('redirect'):
+            code = metadata['redirect'][0]
+            location = metadata['redirect'][1]
+            log.info('handle: <{0}> {1} -> {2} => {3}'.format(ip, pth, code, location))
+            return code, 'Moved', {('header','Location'):location, 'message':'Mowed'}, None, None
         # Locate content file
-        if os.path.isdir(pth):
+        elif is_dir:
             # search for index file
             for idxf in ('index','index.html','index.md','index.pp','index.bb'):
                 c, cont, mt, mimet, enct = self.do_handle(path+'/'+idxf, environ)
@@ -231,8 +242,6 @@ class PixyWerk(object):
                     enctype = mtypes[1]
 
                 content = file(pth,'r')
-
-
         else:
             # 404
             log.info('handle: <{0}> {1} -> 404'.format(ip, pth))
@@ -261,11 +270,12 @@ class PixyWerk(object):
         code, content, metadata, mimetype, enctype = self.do_handle(path, environ)
         if code == 404:
             return response(code=404, message='Not found', contenttype='text/plain').done('404 Not Found')
-        resp = response()
+        resp = response(code=code)
         for i in metadata.keys():
             if len(i) == 2 and i[0] == 'header':
                 resp.headers[i[1]] = metadata[i]
-
+        if metadata.has_key('message'):
+            resp.message = metadata['message']
         if mimetype:
             resp.headers['Content-type'] = mimetype
         if enctype:

@@ -100,13 +100,17 @@ class PixyWerk(object):
                 meta = simpleconfig.load_config(file(metafn, 'r'), meta)
             curpath=os.path.join(curpath, p)
 
-        if os.path.isdir(curpath):
+        extspl = os.path.splitext(curpath)
+        if len(extspl) > 1 and extspl[1] == '.cont':
+            metafn = os.path.join(extspl[0] + '.meta')
+        elif os.path.isdir(curpath):
             metafn = os.path.join(curpath, '.meta')
         else:
             metafn = curpath+'.meta'
 
         if os.access(metafn,os.F_OK):
             meta = simpleconfig.load_config(file(metafn,'r'), meta)
+
 
         return meta
 

@@ -63,7 +63,7 @@ def process_bb(cont):
 
 def process_scss(cont):
     if SCSS_SUPPORT:
-        return scssdecoder.complie(cont)
+        return scssdecoder.compile(cont)
     else:
         return cont
 
@@ -83,15 +83,17 @@ class PixyWerk(object):
 
         tmplpaths = [os.path.join(config['root'], x) for x in config['template_paths']]
         self.template_env = Environment(loader=FileSystemLoader(tmplpaths))
+        # some convenience functions for making dynamic content
         self.template_env.globals['getmetadata'] = self.get_metadata
         self.template_env.globals['getcontent'] = self.get_content
+        self.template_env.globals['getlist'] = self.get_list
+        # a useful filter for formatting dates
         self.template_env.filters['date'] = datetimeformat
 
     def get_metadata(self, relpath):
         """Return the metadata (dict) for a path relative to the root path."""
         # FIXME this would be trivial to cache
         meta = dict(DEFAULT_PROPS)
-
         pthcomps = os.path.split(relpath)
         curpath = self.config['root']
         for p in pthcomps:
@@ -99,7 +101,6 @@ class PixyWerk(object):
             if os.access(metafn,os.F_OK):
                 meta = simpleconfig.load_config(file(metafn, 'r'), meta)
             curpath=os.path.join(curpath, p)
-
         extspl = os.path.splitext(curpath)
         if len(extspl) > 1 and extspl[1] == '.cont':
             metafn = os.path.join(extspl[0] + '.meta')
@@ -107,17 +108,25 @@ class PixyWerk(object):
             metafn = os.path.join(curpath, '.meta')
         else:
             metafn = curpath+'.meta'
-
         if os.access(metafn,os.F_OK):
             meta = simpleconfig.load_config(file(metafn,'r'), meta)
-
-
         return meta
+
+    def get_list(self, relpath):
+        """Return a list of files within a relative path, with some minor metadata."""
+        items = list(os.listdir(os.path.join(self.config['root'],relpath)))
+        list.sort()
+        output = list()
+        for item in items:
+            output.append((item, os.path.isdir(item)))
+        return output
 
     def get_content(self, path):
         """Return the rendered content for an absolute path."""
         # FIXME this should contain the actual filesystem access blob instead of do_handle.
         code, content, metadata, mimetype, enctype = self.do_handle(path, template_override=True)
+        if isinstance(content, file):
+            content = content.read().decode('utf-8')
         return content
 
     def generate_index(self, path,metadata):

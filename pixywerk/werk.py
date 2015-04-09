@@ -115,7 +115,7 @@ class PixyWerk(object):
     def get_list(self, relpath):
         """Return a list of files within a relative path, with some minor metadata."""
         items = list(os.listdir(os.path.join(self.config['root'],relpath)))
-        items.sort()
+        items.sort(lambda x, y: cmp(y, x))
         output = list()
         for item in items:
             output.append((item, os.path.isdir(item)))

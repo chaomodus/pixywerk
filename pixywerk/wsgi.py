@@ -3,6 +3,7 @@
 import os
 from . import werk
 from . import simpleconfig
+from . import version
 from .utils import response
 import re
 import sys
@@ -16,12 +17,13 @@ default_config = {
     'name': 'pixywerk',
     'template_paths': ('templates',),
     'pathelement_blacklist': ('.git',),
-    'wsgi_path_filters': (),
+    'banner':False,
+    'debugpage':False,
 }
 
 mywerk = None
 config = None
-filters = None
+filters = [] # we'll support these again in a less silly way
 
 logging.config.dictConfig({
     'version': 1,
@@ -66,14 +68,27 @@ def init(environ):
     except:
         log.error('init: error changing working directory.')
 
+    logcount = 5
+    if 'log_count' in config:
+        try:
+            logcount = int(config['log_count'])
+        except:
+            pass
+
+    logsize = 104857600 # 100 mebibytes
+    if 'log_maxsize' in config:
+        try:
+            logsize = int(config['log_maxsize'])
+        except:
+            pass
+
     if 'logfie' in config:
         fh = logging.handlers.RotatingFileHandler(config['logfile'],
-                                                  backupCount=5)
+                                                  backupCount=logcount,
+                                                  maxBytes=logsize)
         fh.setLevel(logging.INFO)
         fh.setFormatter(lfmt)
         log.addHandler(fh)
-
-    filters = [re.compile(f) for f in config['wsgi_path_filters']]
 
     mywerk = werk.PixyWerk(config)
     log.info("init: Welcome to PixyWerk.")
@@ -87,7 +102,7 @@ def print_debug(dictionary):
     """Format a dictionary. (DEBUG PURPOSES)"""
     outp = '<table>'
     for k, v in dictionary.items():
-        outp += "<tr><td>%s</td><td>%s</td></tr>" % (k, v)
+        outp += "<tr><td>{key}</td><td>{value}</td></tr>".format(key=k, value=v)
     return outp + '</table>'
 
 
@@ -128,17 +143,11 @@ def do_werk(environ, start_response):
     for f in filters:
         path = f.sub('', path)
 
-    # if path and path[-1] == '/':
-    #     path = path[:-1]
-
-    # if not len(path):
-    #     path = '/'
-
     relpath, pth, is_dir = mywerk.path_info(path)
     resp = '404 Not Found'
     headr = list()
     content = '404 NOT FOUND'
-    if path == '/debug':
+    if config['debugpage'] and path == '/debug':
         resp, headr, content = debug(environ)
     elif is_dir and path[-1] != '/':
         resp = '301 Moved Permanantly'
@@ -147,7 +156,8 @@ def do_werk(environ, start_response):
     else:
         resp, headr, content = mywerk.handle(path, environ)
 
-    headr.append(('X-CMS', 'PixyWerk'))
+    if config['banner']:
+        headr.append(('X-CMS', 'PixyWerk {version}'.format(version=version.version)))
 
     start_response(resp, headr)
     return content

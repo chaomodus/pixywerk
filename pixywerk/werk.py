@@ -113,6 +113,7 @@ class PixyWerk(object):
     def get_metadata(self, relpath):
         """Return the metadata (dict) for a path relative to the root path."""
         # FIXME this would be trivial to cache
+        # FIXME this could be stored in a database too.
         meta = dict(DEFAULT_PROPS)
         pthcomps = os.path.split(relpath)
         curpath = self.config['root']
@@ -227,7 +228,7 @@ class PixyWerk(object):
                 ip = environ['HTTP_X_REAL_IP']
             else:
                 ip = environ['REMOTE_ADDR']
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             ip = 'unk'
 
         log.debug('handle: <{0}> entering handle for {1}'.format(ip, pth))

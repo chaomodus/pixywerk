@@ -1,2 +1,2 @@
-version='alpha7'
-version_info = (0,0,7)
+version='alpha9'
+version_info = (0,0,9)

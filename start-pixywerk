@@ -5,6 +5,8 @@ import pixywerk
 import pixywerk.wsgi
 import sys
 
+werk = pixywerk.wsgi.PixyWSGI()
+
 host = '0.0.0.0'
 port = 8000
 try:
@@ -16,4 +18,4 @@ print "*** PIXYWERK %s ***" % pixywerk.version
 print "MARKDOWN_SUPPORT =", pixywerk.werk.MARKDOWN_SUPPORT
 print "BBCODE_SUPPORT =", pixywerk.werk.BBCODE_SUPPORT
 print "SCSS_SUPPORT =", pixywerk.werk.SCSS_SUPPORT
-wsgi.WSGIServer((host, port), pixywerk.wsgi.do_werk, spawn='default').serve_forever()
+wsgi.WSGIServer((host, port), werk, spawn='default').serve_forever()

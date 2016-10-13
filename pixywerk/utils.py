@@ -25,13 +25,13 @@ class response(object):
             if isinstance(contents, file):
                 try:
 
-                    self.headers['Content-Length'] = os.stat(contents).st_size
+                    self.headers['Content-Length'] = str(os.stat(contents).st_size)
                 except:
                     pass
             else:
                 # FIXME encode contents based on encoding headers!
                 contents = contents.encode('UTF-8')
-                self.headers['Content-Length'] = len(contents)
+                self.headers['Content-Length'] = str(len(contents))
                 contents = iter([contents])
 
         return str(self), self.headers.items(), contents

@@ -1,13 +1,9 @@
-"""a very simplistic wrapper for loading JSON files while also providing
-defaults."""
-
 import yaml
 import logging
 
-log = logging.getLogger('pixywerk.simpleconfig')
+log = logging.getLogger('pixywerk.config')
 
-
-def load_config(infile, defaults={}):
+def load_config_file(infile, defaults={}):
     """read JSON file and return dictionary.
 
 Keyword arguments:

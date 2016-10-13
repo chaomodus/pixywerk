@@ -36,7 +36,7 @@ except:
 
 DEBUG = True
 
-from . import simpleconfig
+from . import config
 
 DEFAULT_PROPS = {('header', 'Content-type'): 'text/html',
                  'template': 'default.html',
@@ -120,7 +120,7 @@ class PixyWerk(object):
         for p in pthcomps:
             metafn = os.path.join(curpath, '.meta')
             if os.access(metafn, os.F_OK):
-                meta = simpleconfig.load_config(file(metafn, 'r'), meta)
+                meta = config.load_config_file(file(metafn, 'r'), meta)
             curpath = os.path.join(curpath, p)
         extspl = os.path.splitext(curpath)
         if len(extspl) > 1 and extspl[1] == '.cont':
@@ -130,7 +130,7 @@ class PixyWerk(object):
         else:
             metafn = curpath+'.meta'
         if os.access(metafn, os.F_OK):
-            meta = simpleconfig.load_config(file(metafn, 'r'), meta)
+            meta = config.load_config_file(file(metafn, 'r'), meta)
         return meta
 
     def get_list(self, relpath):
@@ -284,7 +284,7 @@ class PixyWerk(object):
                 ext = os.path.splitext(pth)[-1].lower().strip()
             except:
                 ext = ''
-            if ext in file_types.keys():
+            if ext in file_types:
                 content = file_types[ext]['processor'](
                     file(pth, 'r').read().decode('utf-8'))
                 templatable = file_types[ext]['templatable']
@@ -339,9 +339,9 @@ class PixyWerk(object):
                             message='Not found',
                             contenttype='text/plain').done('404 Not Found')
         resp = response(code=code)
-        for i in metadata.keys():
-            if len(i) == 2 and i[0] == 'header':
-                resp.headers[i[1]] = metadata[i]
+        for mdkey in metadata:
+            if len(mdkey) == 2 and mdkey[0] == 'header':
+                resp.headers[mdkey[1]] = metadata[mdkey]
         if 'message' in metadata:
             resp.message = metadata['message']
         if mimetype:

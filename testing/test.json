@@ -1,5 +1,6 @@
 {
     "name":"test",
-    "root":"/home/cas/pixywerk/testing/test",
-    "template_paths":["template"]
+    "root":"/home/cas/proj/pixywerk/testing/test",
+    "template_paths":["template"],
+    "logfile":"/home/cas/proj/pixywerk/testing/test.log"
 }

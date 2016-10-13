@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pixywerk',
-      version='alpha9',
+      version='0.0a6',
       description='A simple filesystem based WSGI CMS',
       url='https://github.com/chaomodus/pixywerk/',
       author='Cas Rusnov',
